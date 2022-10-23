@@ -35,13 +35,13 @@ Every manager in JDA is cached for re-use and can be updated for an interval and
     import net.dv8tion.jda.api.entities.*;
     import net.dv8tion.jda.api.MessageBuilder;
     import net.dv8tion.jda.api.requests.restaction.MessageAction;
-    
+
     // derived with permission from https://gist.github.com/MinnDevelopment/190b79109b17c3bb446eea13be57c43c
     public class UpdateStateMachine extends ListenerAdapter {
-    private final TextChannel channel;
-    private String name = null;
-    private String topic = null;
-    private int state = 0;
+        private final TextChannel channel;
+        private String name = null;
+        private String topic = null;
+        private int state = 0;
     
         public UpdateStateMachine(TextChannel channel) {
             this.channel = channel;
