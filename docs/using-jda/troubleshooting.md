@@ -67,7 +67,7 @@ NDkyNzQ3NzY5MDM2MDEzNTc4.Xw2cUA.LLslVBE1tfFK20sGsNm-FVFYdsA
 
 ### Can't get emoji from message
 
-Methods such as [`Message.getEmotes()`](https://ci.dv8tion.net/job/JDA/javadoc/net/dv8tion/jda/api/entities/Message.html#getEmotes()) and [`Message.getEmotesBag()`](https://ci.dv8tion.net/job/JDA/javadoc/net/dv8tion/jda/api/entities/Message.html#getEmotesBag()) only include custom emoji which have to be uploaded to a guild by a moderator. Unicode emoji such as 👍 are not included and require using a 3rd party library to be located in a string. You can use [emoji-java](https://github.com/vdurmont/emoji-java) to extract unicode emoji from a message.
+Methods such as [`Mentions.getCustomEmojis()`](https://ci.dv8tion.net/job/JDA5/javadoc/net/dv8tion/jda/api/entities/Mentions.html#getCustomEmojis()) and [`Mentions.getCustomEmojisBag()`](https://ci.dv8tion.net/job/JDA5/javadoc/net/dv8tion/jda/api/entities/Mentions.html#getCustomEmojisBag()) only include custom emoji which have to be uploaded to a guild by a moderator. Unicode emoji such as 👍 are not included and require using a 3rd party library to be located in a string. You can use [emoji-java](https://github.com/MinnDevelopment/emoji-java) to extract unicode emoji from a message.
 
 An example use-case including a code sample can be found in [this answer to a related question on StackOverflow](https://stackoverflow.com/a/58353912/10630900)
 
@@ -254,7 +254,7 @@ Entities that should not be stored for a long period of time include:
 - Role
 - Channel (any type of channel)
 - Guild
-- Emote
+- RichCustomEmoji
 - User
 - Message
 
@@ -274,17 +274,40 @@ I explained this in [this wiki page](gateway-intents-and-member-cache-policy.md)
 There are many ways you can retrieve members dynamically: [Loading Members](gateway-intents-and-member-cache-policy.md#loading-members)
 
 
+### Cannot get message content / Attempting to access message content without GatewayIntent
 
+When you receive this warning, that means you tried to access the content of a message without the privileged `GatewayIntent.MESSAGE_CONTENT`.
+
+```
+Attempting to access message content without GatewayIntent.MESSAGE_CONTENT.
+Discord now requires to explicitly enable access to this using the MESSAGE_CONTENT intent.
+Useful resources to learn more:
+	- https://support-dev.discord.com/hc/en-us/articles/4404772028055-Message-Content-Privileged-Intent-FAQ
+	- https://jda.wiki/using-jda/gateway-intents-and-member-cache-policy/
+	- https://jda.wiki/using-jda/troubleshooting/#im-getting-closecode4014-disallowed-intents
+Or suppress this warning if this is intentional with Message.suppressContentIntentWarning()
+```
+
+As of JDA version **5.0.0-alpha.14**, you are **required** to enable this intent explicitly with `enableIntents(GatewayIntent.MESSAGE_CONTENT)` on your `JDABuilder` or `DefaultShardManagerBuilder`.
+
+This affects anyone who accesses these methods on messages:
+
+ -   `getContentRaw`, `getContentDisplay`, `getContentStripped`, and `getMentions().getCustomEmojis()`
+ -   `getActionRows`, and `getButtons`
+ -   `getAttachments`
+ -   `getEmbeds`
+
+You are also required to enable this in your [application dashboard](https://discord.com/developers/applications). Note, however, that this is a **privileged** intent and will require a valid use-case for your bot to be verified in over 75 servers.
 
 
 ### I'm getting CloseCode(4014 / Disallowed intents...)
 
-This means you tried to use `GatewayIntent.GUILD_MEMBERS` or `GatewayIntent.GUILD_PRESENCES` without enabling it in your application dashboard. To use these privileged intents you first have to enable them.
+This means you tried to use `GatewayIntent.GUILD_MEMBERS`, `GatewayIntent.GUILD_PRESENCES`, or `GatewayIntent.MESSAGE_CONTENT` without enabling it in your application dashboard. To use these privileged intents you first have to enable them.
 
 1. Open the [application dashboard](https://discord.com/developers/applications)
 1. Select your bot application
 1. Open the **Bot** tab
-1. Under the **Privileged Gateway Intents** section, enable either **SERVER MEMBERS INTENT** or **PRESENCE INTENT** depending on your needs.
+1. Under the **Privileged Gateway Intents** section, enable the intents that you are using in your bot. Toggle on **SERVER MEMBERS INTENT**, **PRESENCE INTENT**, or **MESSAGE CONTENT INTENT** depending on your needs.
 
 If you use these intents you are limited to 100 guilds on your bot. To allow the bot to join more guilds while using this intent you have to [verify your bot](https://blog.discord.com/the-future-of-bots-on-discord-4e6e050ab52e). This will be available in your application dashboard when the bot joins at least 75 guilds.
 

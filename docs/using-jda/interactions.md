@@ -11,9 +11,7 @@ This guide will give you a brief introduction to an API for adding and handling 
 - [Context Menus](#context-menus)
 - [Buttons](#buttons)
 - [Select Menus (Dropdowns)](#select-menus-dropdowns)
-- Modals*
-
-*Modals are currently in-development and will be available soon in v5-alpha.
+- [Modals](#modals)
 
 ### Ephemeral Messages
 
@@ -44,7 +42,7 @@ All of these commands are used through the interactions API. They do not require
 
 To create commands you need to make some API requests. There are 2 types of commands you can create called **global commands** and **guild commands**.
 
-- **Global**: These commands are available in every server your bot is in (regardless of sharding!) and direct message (Private Channels). These commands can take up to 1 hour to show up. _It is recommended to use guild commands for testing purposes._
+- **Global**: These commands are available in every server your bot is in (regardless of sharding!) and direct message (Private Channels).
 - **Guild**: These commands are only in the specific guild that you created them in and cannot be used in direct messages. These commands show up immediately after creation.
 
 #### Creating Slash Commands
@@ -170,6 +168,32 @@ When you use `deferReply` the first message sent to this webhook will act identi
                 }
             }
         }
+        ```
+
+#### Managing Slash Command Permissions
+
+Restricting slash commands to specific roles or members is up to the admins of the guild.  However, bots can specify a set of permissions that sets who can use those commands by default.
+
+Note that members with `Permission.ADMINISTRATOR` can always use commands, and they can override which roles or members can run the command.  JDA only changes the _default_ members and roles that can access it.
+
+In order to set this default, `.setDefaultPermissions()` can be called on the command before you register it. 
+`DefaultMemberPermissions.DISABLED` can be used to only allow administrators by default, and `DefaultMemberPermissions.ENABLED` can be used to allow all members by default.
+
+!!! example
+    This will restrict the command so that only members with the `Permission.MANAGE_CHANNEL` and `Permission.MODERATE_MEMBERS` permissions can use the command:
+    === "Java"
+        ```java
+        guild.updateCommands().addCommands(
+            Commands.slash("meeting", "Creates a new channel for an emergency meeting")
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_CHANNEL, Permission.MODERATE_MEMBERS))
+        ).queue();
+        ```
+    === "Kotlin"
+        ```java
+        guild.updateCommands().addCommands(
+            Commands.slash("meeting", "Creates a new channel for an emergency meeting")
+                .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.MANAGE_CHANNEL, Permission.MODERATE_MEMBERS))
+        ).queue()
         ```
 
 
@@ -346,13 +370,13 @@ Each non-link button requires such an ID in order to be used.
                     event.reply("Click the button to say hello")
                         .addActionRow(
                           Button.primary("hello", "Click Me"), // Button with only a label
-                          Button.success("emoji", Emoji.fromMarkdown("<:minn:245267426227388416>"))) // Button with only an emoji
+                          Button.success("emoji", Emoji.fromFormatted("<:minn:245267426227388416>"))) // Button with only an emoji
                         .queue();
                 } else if (event.getName().equals("info")) {
                     event.reply("Click the buttons for more info")
                         .addActionRow( // link buttons don't send events, they just open a link in the browser when clicked
                             Button.link("https://github.com/DV8FromTheWorld/JDA", "GitHub")
-                              .withEmoji(Emoji.fromMarkdown("<:github:849286315580719104>")), // Link Button with label and emoji
+                              .withEmoji(Emoji.fromFormatted("<:github:849286315580719104>")), // Link Button with label and emoji
                             Button.link("https://ci.dv8tion.net/job/JDA/javadoc/", "Javadocs")) // Link Button with only a label
                         .queue();
                 }
@@ -376,13 +400,13 @@ Each non-link button requires such an ID in order to be used.
                     event.reply("Click the button to say hello")
                         .addActionRow(
                             Button.primary("hello", "Click Me"),  // Button with only a label
-                            Button.success("emoji", Emoji.fromMarkdown("<:minn:245267426227388416>"))) // Button with only an emoji
+                            Button.success("emoji", Emoji.fromFormatted("<:minn:245267426227388416>"))) // Button with only an emoji
                         .queue()
                 } else if (event.name == "info") {
                     event.reply("Click the buttons for more info")
                         .addActionRow( // link buttons don't send events, they just open a link in the browser when clicked
                             Button.link("https://github.com/DV8FromTheWorld/JDA", "GitHub")
-                                .withEmoji(Emoji.fromMarkdown("<:github:849286315580719104>")),  // Link Button with label and emoji
+                                .withEmoji(Emoji.fromFormatted("<:github:849286315580719104>")),  // Link Button with label and emoji
                             Button.link("https://ci.dv8tion.net/job/JDA/javadoc/", "Javadocs")) // Link Button with only a label
                         .queue()
                 }
@@ -462,6 +486,116 @@ When a user selects their options from a dropdown and submits their choices, you
             override fun onSelectMenuInteraction(event: SelectMenuInteractionEvent) {
                 if (event.componentId == "choose-food") {
                     event.reply("You chose " + event.values[0]).queue()
+                }
+            }
+        }
+        ```
+
+## Modals
+
+Modals are pop-ups that appear in a user's Discord client.
+
+![Example Modal](https://i.imgur.com/fjqQNrm.png)
+
+Similarly to messages, Modals can contain up to **5** ActionRows, although the only component that can be put inside Modals at the moment (`TextInput`) takes up a whole ActionRow. 
+
+### Replying with a Modal
+
+!!! example
+    === "Java"
+        ```java
+        public class SupportCommand extends ListenerAdapter {
+            @Override
+            public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+                if (event.getName().equals("modmail")) {
+                    TextInput subject = TextInput.create("subject", "Subject", TextInputStyle.SHORT)
+                            .setPlaceholder("Subject of this ticket")
+                            .setMinLength(10)
+                            .setMaxLength(100) // or setRequiredRange(10, 100)
+                            .build();
+
+                    TextInput body = TextInput.create("body", "Body", TextInputStyle.PARAGRAPH)
+                            .setPlaceholder("Your concerns go here")
+                            .setMinLength(30)
+                            .setMaxLength(1000)
+                            .build();
+
+                    Modal modal = Modal.create("modmail", "Modmail")
+                            .addActionRows(ActionRow.of(subject), ActionRow.of(body))
+                            .build();
+
+                    event.replyModal(modal).queue();
+                }
+            }
+        }
+        ```
+    === "Kotlin"
+        ```kotlin
+        object SupportCommand : ListenerAdapter() {
+            override fun onSlashCommandInteraction(event: SlashCommandInteractionEvent) {
+                if (event.name == "modmail") {
+                    val subject = TextInput.create("subject", "Subject", TextInputStyle.SHORT)
+                        .setPlaceholder("Subject of this ticket")
+                        .setMinLength(10)
+                        .setMaxLength(100) // or setRequiredRange(10, 100)
+                        .build()
+
+                    val body = TextInput.create("body", "Body", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("Your concerns go here")
+                        .setMinLength(30)
+                        .setMaxLength(1000)
+                        .build()
+
+                    val modal = Modal.create("modmail", "Modmail")
+                        .addActionRows(ActionRow.of(subject), ActionRow.of(body))
+                        .build()
+
+                    event.replyModal(modal).queue()
+                }
+            }
+        }
+        ```
+
+### Handling ModalInteractionEvent
+
+When the user clicks the "Submit" button on the Modal, you will receive an `ModalInteractionEvent`, containing all the values the user put in it.
+
+!!! warning
+
+    Acknowledging a `ModalInteractionEvent` is necessary. Failing to respond to the event will not close it on the user's client, and will show them an error.
+
+!!! info
+
+    If the Modal originated from a Component-Interaction (Buttons, SelectMenus), it is possible to acknowledge the interaction using an edit to the original Message using `editMessage()` or similar.
+
+!!! example
+    === "Java"
+        ```java
+        public class ModalListener extends ListenerAdapter {
+            @Override
+            public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
+                if (event.getModalId().equals("modmail")) {
+                    String subject = event.getValue("subject").getAsString();
+                    String body = event.getValue("body").getAsString();
+
+                    createSupportTicket(subject, body);
+
+                    event.reply("Thanks for your request!").setEphemeral(true).queue();
+                }
+            }
+        }
+        ```
+    === "Kotlin"
+        ```kotlin
+        object ModalListener : ListenerAdapter() {
+            override fun onModalInteraction(event: ModalInteractionEvent) {
+                if (event.modalId == "modmail") {
+                    val subject = event.getValue("subject") ?: return
+                    val body = event.getValue("body") ?: return
+
+                    createSupportTicket(subject, body)
+
+                    event.reply("Thanks for your request!").setEphemeral(true).queue()
                 }
             }
         }
